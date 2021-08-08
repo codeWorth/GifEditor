@@ -1,5 +1,5 @@
 from PIL.Image import Image
-import argparse, os
+import argparse
 from editor import ImageOp
 import numpy as np
 from path_args import PathArgs
