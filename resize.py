@@ -1,6 +1,36 @@
 from PIL import Image
 import argparse, os
 from editor import ImageOp
+from path_args import PathArgs
+
+
+class ResizeArgs:
+	def __init__(self, parser: argparse.ArgumentParser):
+		self.parser = parser
+
+	def create_args(self) -> None:
+		self.parser.add_argument("-W", "--width", type=int, help="output width in pixels")
+		self.parser.add_argument("-H", "--height", type=int, help="output height in pixels")
+		self.parser.add_argument("--scale_width", type=float, help="output width scale as a float")
+		self.parser.add_argument("--scale_height", type=float, help="output height scale as a float")
+		self.parser.add_argument("-S", "--scale", type=float, help="output scale as a float")
+
+	def check_args(self, args):
+		has_pixel_size = args.width or args.height
+		has_scale = args.scale_width or args.scale_height
+		has_aspect_scale = bool(args.scale)
+
+		if has_pixel_size and has_scale:
+			self.parser.error("Cannot have absolute size and scaled size")
+
+		if has_pixel_size and has_aspect_scale:
+			self.parser.error("Cannot have absolute size and scaled size")
+
+		if has_scale and has_aspect_scale:
+			self.parser.error("Cannot have scaled size and aspect scaled size")
+
+		if bool(args.scale_width) ^ bool(args.scale_height):
+			self.parser.error("Must have both --scale_width and --scale_height parameters present")
 
 
 class ResizeOp(ImageOp):
@@ -60,38 +90,16 @@ class AspectScaleOp(ImageOp):
 	
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Resize gifs with given paths.")
-	parser.add_argument("output", metavar="O", type=str, help="folder to put resized gifs in")
-	parser.add_argument("paths", metavar="P", type=str, nargs="+", help="paths to gifs to resize")
 
-	parser.add_argument("-W", "--width", type=int, help="output width in pixels")
-	parser.add_argument("-H", "--height", type=int, help="output height in pixels")
-	parser.add_argument("--scale_width", type=float, help="output width scale as a float")
-	parser.add_argument("--scale_height", type=float, help="output height scale as a float")
-	parser.add_argument("-S", "--scale", type=float, help="output scale as a float")
-
+	pathArgs = PathArgs(parser)
+	resizeArgs = ResizeArgs(parser)
+	pathArgs.create_args()
+	resizeArgs.create_args()
+	
 	args = parser.parse_args()
 
-	has_pixel_size = args.width or args.height
-	has_scale = args.scale_width or args.scale_height
-	has_aspect_scale = bool(args.scale)
-
-	if has_pixel_size and has_scale:
-		parser.error("Cannot have absolute size and scaled size")
-
-	if has_pixel_size and has_aspect_scale:
-		parser.error("Cannot have absolute size and scaled size")
-
-	if has_scale and has_aspect_scale:
-		parser.error("Cannot have scaled size and aspect scaled size")
-
-	if bool(args.scale_width) ^ bool(args.scale_height):
-		parser.error("Must have both --scale_width and --scale_height parameters present")
-
-	if not all([path.split(".")[-1] == "gif" for path in args.paths]):
-		parser.error("All paths must be gifs")
-
-	if not os.path.isdir(args.output):
-		parser.error("Output location must be a folder")
+	pathArgs.check_args(args)
+	resizeArgs.check_args(args)
 
 	if args.width and args.height:
 		for path in args.paths:
