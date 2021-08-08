@@ -1,9 +1,10 @@
-from PIL import Image
+from PIL.Image import Image
 import argparse, os
 from editor import ImageOp
 import numpy as np
 from path_args import PathArgs
 import cv2
+from typing import Iterator
 
 
 def get_palette_hsv(image: Image) -> np.array:
@@ -42,14 +43,15 @@ class HueShiftOp(ImageOp):
 	def __init__(self, hue_shift: float):
 		self.hue_shift = hue_shift
 
-	def apply(self, image: Image) -> Image:
-		hsvPalette = get_palette_hsv(image).astype(np.int16)
-		hsvPalette[:, :, 0] += 360 # add offset to avoid negative overflow 
-		hsvPalette[:, :, 0] += int(self.hue_shift / 2) # hue is in range [0, 180)
-		hsvPalette[:, :, 0] = hsvPalette[:, :, 0] % 180
-		hsvPalette = hsvPalette.astype(np.uint8)
-		put_palette_from_hsv(image, hsvPalette)
-		return image
+	def get_edited_frames(self, frames: Iterator[Image]) -> Iterator[Image]:
+		for image in frames:
+			hsvPalette = get_palette_hsv(image).astype(np.int16)
+			hsvPalette[:, :, 0] += 360 # add offset to avoid negative overflow 
+			hsvPalette[:, :, 0] += int(self.hue_shift / 2) # hue is in range [0, 180)
+			hsvPalette[:, :, 0] = hsvPalette[:, :, 0] % 180
+			hsvPalette = hsvPalette.astype(np.uint8)
+			put_palette_from_hsv(image, hsvPalette)
+			yield image
 
 	def op_type(self) -> str:
 		return "hue shift"
@@ -59,11 +61,12 @@ class HueSetOp(ImageOp):
 	def __init__(self, hue: float):
 		self.hue = hue
 
-	def apply(self, image: Image) -> Image:
-		hsvPalette = get_palette_hsv(image)
-		hsvPalette[:, :, 0] = int(self.hue / 2) # hue is in range [0, 180)
-		put_palette_from_hsv(image, hsvPalette)
-		return image
+	def get_edited_frames(self, frames: Iterator[Image]) -> Iterator[Image]:
+		for image in frames:
+			hsvPalette = get_palette_hsv(image)
+			hsvPalette[:, :, 0] = int(self.hue / 2) # hue is in range [0, 180)
+			put_palette_from_hsv(image, hsvPalette)
+			yield image
 
 	def op_type(self) -> str:
 		return "hue set"
@@ -84,9 +87,9 @@ if __name__ == "__main__":
 
 	if args.hue:
 		for path in args.paths:
-			HueShiftOp(args.hue).edit_gif_initial(path, args.output)
+			HueShiftOp(args.hue).edit_gif(path, args.output)
 	elif args.set_hue:
 		for path in args.paths:
-			HueSetOp(args.set_hue).edit_gif_initial(path, args.output)
+			HueSetOp(args.set_hue).edit_gif(path, args.output)
 	else:
 		raise TypeError("Unknown resizing type")

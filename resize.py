@@ -1,7 +1,8 @@
-from PIL import Image
+from PIL.Image import Image
 import argparse, os
 from editor import ImageOp
 from path_args import PathArgs
+from typing import Iterator
 
 
 class ResizeArgs:
@@ -38,8 +39,9 @@ class ResizeOp(ImageOp):
 		self.width = width
 		self.height = height
 
-	def apply(self, image: Image) -> Image:
-		return image.resize((self.width, self.height))
+	def get_edited_frames(self, frames: Iterator[Image]) -> Iterator[Image]:
+		for image in frames:
+			yield image.resize((self.width, self.height))
 
 	def op_type(self) -> str:
 		return "resize"
@@ -50,12 +52,13 @@ class AspectResizeOp(ImageOp):
 		self.width = width
 		self.height = height
 
-	def apply(self, image: Image) -> Image:
-		if self.width:
-			self.height = int(image.size[1] * self.width / image.size[0])
-		elif self.height:
-			self.width = int(image.size[0] * self.height / image.size[1])
-		return image.resize((self.width, self.height))
+	def get_edited_frames(self, frames: Iterator[Image]) -> Iterator[Image]:
+		for image in frames:
+			if self.width:
+				self.height = int(image.size[1] * self.width / image.size[0])
+			elif self.height:
+				self.width = int(image.size[0] * self.height / image.size[1])
+			yield image.resize((self.width, self.height))
 
 	def op_type(self) -> str:
 		return "resize, maintaining aspect ratio"
@@ -66,10 +69,11 @@ class ScaleOp(ImageOp):
 		self.width_scale = width_scale
 		self.height_scale = height_scale
 
-	def apply(self, image: Image) -> Image:
-		width = image.size[0] * self.width_scale
-		height = image.size[1] * self.height_scale
-		return image.resize((int(width), int(height)))
+	def get_edited_frames(self, frames: Iterator[Image]) -> Iterator[Image]:
+		for image in frames:
+			width = image.size[0] * self.width_scale
+			height = image.size[1] * self.height_scale
+			yield image.resize((int(width), int(height)))
 
 	def op_type(self) -> str:
 		return "resize w/ scale"
@@ -79,10 +83,11 @@ class AspectScaleOp(ImageOp):
 	def __init__(self, scale: float):
 		self.scale = scale
 
-	def apply(self, image: Image) -> Image:
-		width = image.size[0] * self.scale
-		height = image.size[1] * self.scale
-		return image.resize((int(width), int(height)))
+	def get_edited_frames(self, frames: Iterator[Image]) -> Iterator[Image]:
+		for image in frames:
+			width = image.size[0] * self.scale
+			height = image.size[1] * self.scale
+			yield image.resize((int(width), int(height)))
 
 	def op_type(self) -> str:
 		return "resize w/ scale, maintaining aspect ratio"
@@ -103,18 +108,18 @@ if __name__ == "__main__":
 
 	if args.width and args.height:
 		for path in args.paths:
-			ResizeOp(args.width, args.height).edit_gif_framewise(path, args.output)
+			ResizeOp(args.width, args.height).edit_gif(path, args.output)
 	elif args.width:
 		for path in args.paths:
-			AspectResizeOp(width=args.width).edit_gif_framewise(path, args.output)
+			AspectResizeOp(width=args.width).edit_gif(path, args.output)
 	elif args.height:
 		for path in args.paths:
-			AspectResizeOp(height=args.height).edit_gif_framewise(path, args.output)
+			AspectResizeOp(height=args.height).edit_gif(path, args.output)
 	elif args.scale_width:
 		for path in args.paths:
-			ScaleOp(args.scale_width, args.scale_height).edit_gif_framewise(path, args.output)
+			ScaleOp(args.scale_width, args.scale_height).edit_gif(path, args.output)
 	elif args.scale:
 		for path in args.paths:
-			AspectScaleOp(args.scale).edit_gif_framewise(path, args.output)
+			AspectScaleOp(args.scale).edit_gif(path, args.output)
 	else:
 		raise TypeError("Unknown resizing type")
