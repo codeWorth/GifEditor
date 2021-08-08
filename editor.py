@@ -11,7 +11,7 @@ class ImageOp:
 	def op_type(self) -> str:
 		raise NotImplementedError
 
-	def get_frames(self, image) -> Iterator[Image_Type]:
+	def get_frames(self, image: Image_Type) -> Iterator[Image_Type]:
 		while True:
 			yield image.copy()
 			try:
@@ -19,7 +19,7 @@ class ImageOp:
 			except EOFError:
 				break
 
-	def edit_gif(self, path, out_folder) -> None:
+	def edit_gif(self, path: str, out_folder: str) -> None:
 		filename = os.path.join(os.path.dirname(__file__), path)
 		out_filename = os.path.join(os.path.dirname(__file__), out_folder, os.path.basename(filename))
 

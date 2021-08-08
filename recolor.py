@@ -16,7 +16,7 @@ def get_palette_hsv(image: Image) -> np.array:
 	return np_palette
 
 
-def put_palette_from_hsv(image: Image, np_hsv) -> None:
+def put_palette_from_hsv(image: Image, np_hsv: np.array) -> None:
 	image.putpalette(cv2.cvtColor(np_hsv, cv2.COLOR_HSV2RGB).flatten())
 
 
