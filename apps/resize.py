@@ -6,32 +6,31 @@ from typing import Iterator
 
 
 class ResizeArgs:
-	def __init__(self, parser: argparse.ArgumentParser):
-		self.parser = parser
+	@staticmethod
+	def create_args(parser: argparse.ArgumentParser) -> None:
+		parser.add_argument("-W", "--width", type=int, help="output width in pixels")
+		parser.add_argument("-H", "--height", type=int, help="output height in pixels")
+		parser.add_argument("--scale_width", type=float, help="output width scale as a float")
+		parser.add_argument("--scale_height", type=float, help="output height scale as a float")
+		parser.add_argument("-S", "--scale", type=float, help="output scale as a float")
 
-	def create_args(self) -> None:
-		self.parser.add_argument("-W", "--width", type=int, help="output width in pixels")
-		self.parser.add_argument("-H", "--height", type=int, help="output height in pixels")
-		self.parser.add_argument("--scale_width", type=float, help="output width scale as a float")
-		self.parser.add_argument("--scale_height", type=float, help="output height scale as a float")
-		self.parser.add_argument("-S", "--scale", type=float, help="output scale as a float")
-
-	def check_args(self, args):
+	@staticmethod
+	def check_args(parser: argparse.ArgumentParser, args) -> None:
 		has_pixel_size = args.width or args.height
 		has_scale = args.scale_width or args.scale_height
 		has_aspect_scale = bool(args.scale)
 
 		if has_pixel_size and has_scale:
-			self.parser.error("Cannot have absolute size and scaled size")
+			parser.error("Cannot have absolute size and scaled size")
 
 		if has_pixel_size and has_aspect_scale:
-			self.parser.error("Cannot have absolute size and scaled size")
+			parser.error("Cannot have absolute size and scaled size")
 
 		if has_scale and has_aspect_scale:
-			self.parser.error("Cannot have scaled size and aspect scaled size")
+			parser.error("Cannot have scaled size and aspect scaled size")
 
 		if bool(args.scale_width) ^ bool(args.scale_height):
-			self.parser.error("Must have both --scale_width and --scale_height parameters present")
+			parser.error("Must have both --scale_width and --scale_height parameters present")
 
 
 class ResizeOp(ImageOp):
@@ -93,18 +92,17 @@ class AspectScaleOp(ImageOp):
 		return "resize w/ scale, maintaining aspect ratio"
 
 	
-if __name__ == "__main__":
+def make_parser() -> argparse.ArgumentParser:
 	parser = argparse.ArgumentParser(description="Resize gifs with given paths.")
+	PathArgs.create_args(parser)
+	ResizeArgs.create_args(parser)
+	return parser
 
-	pathArgs = PathArgs(parser)
-	resizeArgs = ResizeArgs(parser)
-	pathArgs.create_args()
-	resizeArgs.create_args()
-	
+if __name__ == "__main__":
+	parser = make_parser()
 	args = parser.parse_args()
-
-	pathArgs.check_args(args)
-	resizeArgs.check_args(args)
+	PathArgs.check_args(parser, args)
+	ResizeArgs.check_args(parser, args)
 
 	if args.width and args.height:
 		for path in args.paths:
